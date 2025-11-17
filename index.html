@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wish Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5fb;
+      color: #222;
+      padding: 16px;
+    }
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+      padding: 20px 18px 24px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .title span.emoji { font-size: 22px; }
+    .subtitle {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 16px;
+    }
+    .summary-card {
+      background: linear-gradient(135deg, #ffb6c1, #ff7eb3);
+      border-radius: 14px;
+      padding: 16px 14px;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+    .summary-label {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+    .summary-value {
+      font-size: 24px;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+    .badge {
+      display: inline-block;
+      font-size: 11px;
+      margin-top: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(4px);
+    }
+    .buttons-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    button {
+      border: none;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.12s;
+      white-space: nowrap;
+    }
+    button:active {
+      transform: translateY(1px);
+      box-shadow: none;
+    }
+    .btn-primary {
+      background: #111827;
+      color: white;
+      flex: 1;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+    }
+    .btn-outline {
+      background: #f3f4f6;
+      color: #111827;
+      border: 1px solid #e5e7eb;
+      flex: 1;
+    }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 12px 4px 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .section-title small {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+    .wish-list {
+      margin-top: 4px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .wish-item {
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      padding: 10px 10px;
+      margin-bottom: 8px;
+      background: #fafafa;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: 13px;
+    }
+    .wish-item.used {
+      opacity: 0.65;
+      background: #f9fafb;
+    }
+    .wish-row-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .wish-reason {
+      font-weight: 600;
+    }
+    .wish-chip {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+    }
+    .chip-unused {
+      background: #dcfce7;
+      color: #166534;
+    }
+    .chip-used {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    .wish-meta {
+      font-size: 11px;
+      color: #6b7280;
+    }
+    .wish-actions {
+      margin-top: 4px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    .btn-small {
+      padding: 4px 8px;
+      font-size: 11px;
+      border-radius: 999px;
+    }
+    .admin-panel {
+      margin-top: 10px;
+      border-radius: 14px;
+      background: #f9fafb;
+      padding: 10px 10px 12px;
+      font-size: 12px;
+    }
+    .admin-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .admin-header span {
+      font-weight: 600;
+      font-size: 12px;
+    }
+    .admin-tag {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #374151;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+    .field label {
+      font-size: 11px;
+      color: #4b5563;
+    }
+    .field input,
+    .field textarea {
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-family: inherit;
+    }
+    .field textarea {
+      resize: vertical;
+      min-height: 40px;
+    }
+    .helper-text {
+      font-size: 10px;
+      color: #9ca3af;
+    }
+    .hidden { display: none; }
+    .status-bar {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #6b7280;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title">
+      <span class="emoji">🎫</span>
+      <span>Wish Dashboard</span>
+    </div>
+    <div class="subtitle">우리 둘만의 소원권 현황을 한눈에 보는 페이지야 ✨</div>
+
+    <!-- Summary -->
+    <div class="summary-card" id="summaryCard">
+      <div class="summary-label">미사용 소원권 / 누적 소원권</div>
+      <div class="summary-value" id="summaryValue">0 / 0</div>
+      <div class="badge" id="summaryBadge">불러오는 중...</div>
+    </div>
+
+    <!-- Buttons -->
+    <div class="buttons-row">
+      <button class="btn-primary" id="btnToggleList">
+        📄 소원권 목록 보기
+      </button>
+      <button class="btn-outline" id="btnToggleAdmin">
+        🛠️ 관리자
+      </button>
+    </div>
+
+    <!-- Wish list section -->
+    <div>
+      <div class="section-title">
+        <span>소원권 목록</span>
+        <small id="listSubtitle">최신순</small>
+      </div>
+      <div class="wish-list" id="wishList"></div>
+    </div>
+
+    <!-- Admin panel -->
+    <div class="admin-panel hidden" id="adminPanel">
+      <div class="admin-header">
+        <span>소원권 지급하기</span>
+        <span class="admin-tag">ADMIN</span>
+      </div>
+      <div class="field">
+        <label for="reasonInput">지급 사유</label>
+        <textarea id="reasonInput" placeholder="예: 오늘 시험 보느라 수고 많았어 🥺"></textarea>
+      </div>
+      <div class="field">
+        <label for="countInput">지급 개수</label>
+        <input id="countInput" type="number" min="1" value="1" />
+        <div class="helper-text">한 번에 여러 장도 줄 수 있어요 (기본 1장)</div>
+      </div>
+      <button class="btn-primary" id="btnIssue">
+        ➕ 소원권 지급
+      </button>
+      <div class="status-bar" id="statusBar"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://script.google.com/macros/s/AKfycby1gpOPh2vlqfEsxHgINbQg4ZUdB4DQeCb6f1EJDzqm1d06Z_TvlCgwMv6dxVbfb5_S/exec'; // TODO: Apps Script 웹앱 URL로 바꾸기
+
+    const state = {
+      wishes: [],
+    };
+
+    // DOM refs
+    const summaryValue = document.getElementById('summaryValue');
+    const summaryBadge = document.getElementById('summaryBadge');
+    const wishListEl = document.getElementById('wishList');
+    const listSubtitle = document.getElementById('listSubtitle');
+    const adminPanel = document.getElementById('adminPanel');
+    const statusBar = document.getElementById('statusBar');
+    const reasonInput = document.getElementById('reasonInput');
+    const countInput = document.getElementById('countInput');
+    const btnToggleList = document.getElementById('btnToggleList');
+    const btnToggleAdmin = document.getElementById('btnToggleAdmin');
+    const btnIssue = document.getElementById('btnIssue');
+
+    // 날짜 포맷 (한국식)
+    function formatDate(dateStr) {
+      if (!dateStr) return '-';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth()+1).padStart(2,'0');
+      const dd = String(d.getDate()).padStart(2,'0');
+      const hh = String(d.getHours()).padStart(2,'0');
+      const mi = String(d.getMinutes()).padStart(2,'0');
+      return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
+    }
+
+    function updateSummary() {
+      const total = state.wishes.length;
+      const unused = state.wishes.filter(w => !w.used).length;
+      summaryValue.textContent = `${unused} / ${total}`;
+      if (total === 0) {
+        summaryBadge.textContent = '아직 발급된 소원권이 없어요 😊';
+      } else if (unused === 0) {
+        summaryBadge.textContent = '미사용 소원권이 없어요! 새로운 소원권을 만들어볼까?';
+      } else {
+        summaryBadge.textContent = `지금 사용 가능한 소원권이 ${unused}장 있어요 💗`;
+      }
+    }
+
+    function renderList() {
+      wishListEl.innerHTML = '';
+      if (state.wishes.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.fontSize = '12px';
+        empty.style.color = '#9ca3af';
+        empty.style.padding = '6px 4px';
+        empty.textContent = '아직 아무 소원권도 없어요. 위 관리자 메뉴에서 첫 소원권을 만들어 줄까요?';
+        wishListEl.appendChild(empty);
+        listSubtitle.textContent = '데이터 없음';
+        return;
+      }
+
+      // 최신 발급일 순 정렬
+      const sorted = [...state.wishes].sort((a,b) => new Date(b.issuedAt) - new Date(a.issuedAt));
+      listSubtitle.textContent = `총 ${sorted.length}개`;
+
+      sorted.forEach(wish => {
+        const item = document.createElement('div');
+        item.className = 'wish-item' + (wish.used ? ' used' : '');
+
+        const topRow = document.createElement('div');
+        topRow.className = 'wish-row-top';
+
+        const reason = document.createElement('div');
+        reason.className = 'wish-reason';
+        reason.textContent = wish.reason || '(사유 없음)';
+
+        const chip = document.createElement('div');
+        chip.className = 'wish-chip ' + (wish.used ? 'chip-used' : 'chip-unused');
+        chip.textContent = wish.used ? '사용 완료' : '미사용';
+
+        topRow.appendChild(reason);
+        topRow.appendChild(chip);
+
+        const meta = document.createElement('div');
+        meta.className = 'wish-meta';
+        meta.innerHTML = `
+          지급: ${formatDate(wish.issuedAt)}
+          ${wish.used ? `<br/>사용: ${formatDate(wish.usedAt)}` : ''}
+        `;
+
+        item.appendChild(topRow);
+        item.appendChild(meta);
+
+        if (!wish.used) {
+          const actions = document.createElement('div');
+          actions.className = 'wish-actions';
+
+          const btnUse = document.createElement('button');
+          btnUse.className = 'btn-small btn-outline';
+          btnUse.textContent = '✅ 사용 처리';
+          btnUse.addEventListener('click', () => markAsUsed(wish.id));
+
+          actions.appendChild(btnUse);
+          item.appendChild(actions);
+        }
+
+        wishListEl.appendChild(item);
+      });
+    }
+
+    function setStatus(msg, isError = false) {
+      statusBar.textContent = msg || '';
+      statusBar.style.color = isError ? '#b91c1c' : '#6b7280';
+    }
+
+    async function fetchWishes() {
+      try {
+        summaryBadge.textContent = '불러오는 중...';
+        const res = await fetch(API_BASE + '?action=list');
+        const data = await res.json();
+        state.wishes = data.wishes || [];
+        updateSummary();
+        renderList();
+      } catch (err) {
+        console.error(err);
+        summaryBadge.textContent = '불러오는 중 오류가 발생했어요 😢';
+      }
+    }
+
+    async function issueWishes() {
+      const reason = reasonInput.value.trim();
+      const count = parseInt(countInput.value, 10) || 1;
+
+      if (!reason) {
+        setStatus('지급 사유를 적어줘야 해요!', true);
+        return;
+      }
+      if (count < 1) {
+        setStatus('최소 1장 이상 지급할 수 있어요.', true);
+        return;
+      }
+
+      setStatus('소원권을 생성 중이에요...');
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'issue',
+            reason,
+            count
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setStatus(`소원권 ${count}장이 지급되었어요 💖`);
+          reasonInput.value = '';
+          countInput.value = '1';
+          await fetchWishes();
+        } else {
+          throw new Error(data.message || 'Unknown error');
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus('소원권 지급 중 오류가 발생했어요.', true);
+      }
+    }
+
+    async function markAsUsed(id) {
+      if (!confirm('이 소원권을 사용 처리할까요? 되돌릴 수 없어요!')) return;
+      setStatus('사용 처리 중...');
+      try {
+        const res = await fetch(API_BASE, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'use',
+            id
+          })
+        });
+        const data = await res.json();
+        if (data.success) {
+          setStatus('소원권이 사용 처리되었어요 ✅');
+          await fetchWishes();
+        } else {
+          throw new Error(data.message || 'Unknown error');
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus('사용 처리 중 오류가 발생했어요.', true);
+      }
+    }
+
+    // 버튼 이벤트
+    btnToggleAdmin.addEventListener('click', () => {
+      const hidden = adminPanel.classList.contains('hidden');
+      adminPanel.classList.toggle('hidden');
+      btnToggleAdmin.textContent = hidden ? '🛠️ 관리자 닫기' : '🛠️ 관리자';
+    });
+
+    btnToggleList.addEventListener('click', () => {
+      // 지금은 토글할 다른 뷰가 없어서, 여분 기능 (필요하면 목록 접기/펼치기로 확장 가능)
+      wishListEl.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    btnIssue.addEventListener('click', issueWishes);
+
+    // 초기 로드
+    fetchWishes();
+  </script>
+</body>
+</html>
