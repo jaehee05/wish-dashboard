@@ -260,6 +260,15 @@
         <span>소원권 지급하기</span>
         <span class="admin-tag">ADMIN</span>
       </div>
+
+      <div class="field">
+        <label for="adminKeyInput">관리자 비밀번호</label>
+        <input id="adminKeyInput" type="password" placeholder="관리자만 아는 비밀번호" />
+        <div class="helper-text">
+          비밀번호를 입력해야 소원권 지급·사용 처리가 가능해요. (새로고침하면 다시 입력)
+        </div>
+      </div>
+
       <div class="field">
         <label for="reasonInput">지급 사유</label>
         <textarea id="reasonInput" placeholder="예: 오늘 시험 보느라 수고 많았어 🥺"></textarea>
@@ -277,10 +286,12 @@
   </div>
 
   <script>
-    const API_BASE = 'https://script.google.com/macros/s/AKfycby1gpOPh2vlqfEsxHgINbQg4ZUdB4DQeCb6f1EJDzqm1d06Z_TvlCgwMv6dxVbfb5_S/exec'; // TODO: Apps Script 웹앱 URL로 바꾸기
+    // ❗ 여기를 네 Apps Script 웹앱 URL로 바꿔줘 (마지막에 /exec로 끝나는 주소)
+    const API_BASE = 'https://script.google.com/macros/s/AKfycby1gpOPh2vlqfEsxHgINbQg4ZUdB4DQeCb6f1EJDzqm1d06Z_TvlCgwMv6dxVbfb5_S/exec';
 
     const state = {
       wishes: [],
+      adminKey: ''
     };
 
     // DOM refs
@@ -292,20 +303,20 @@
     const statusBar = document.getElementById('statusBar');
     const reasonInput = document.getElementById('reasonInput');
     const countInput = document.getElementById('countInput');
+    const adminKeyInput = document.getElementById('adminKeyInput');
     const btnToggleList = document.getElementById('btnToggleList');
     const btnToggleAdmin = document.getElementById('btnToggleAdmin');
     const btnIssue = document.getElementById('btnIssue');
 
-    // 날짜 포맷 (한국식)
     function formatDate(dateStr) {
       if (!dateStr) return '-';
       const d = new Date(dateStr);
       if (isNaN(d.getTime())) return dateStr;
       const yyyy = d.getFullYear();
-      const mm = String(d.getMonth()+1).padStart(2,'0');
-      const dd = String(d.getDate()).padStart(2,'0');
-      const hh = String(d.getHours()).padStart(2,'0');
-      const mi = String(d.getMinutes()).padStart(2,'0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
       return `${yyyy}.${mm}.${dd} ${hh}:${mi}`;
     }
 
@@ -335,8 +346,9 @@
         return;
       }
 
-      // 최신 발급일 순 정렬
-      const sorted = [...state.wishes].sort((a,b) => new Date(b.issuedAt) - new Date(a.issuedAt));
+      const sorted = [...state.wishes].sort(
+        (a, b) => new Date(b.issuedAt) - new Date(a.issuedAt)
+      );
       listSubtitle.textContent = `총 ${sorted.length}개`;
 
       sorted.forEach(wish => {
@@ -399,7 +411,7 @@
         renderList();
       } catch (err) {
         console.error(err);
-        summaryBadge.textContent = '불러오는 중 오류가 발생했어요 😢';
+        summaryBadge.textContent = '목록을 불러오는 중 오류가 발생했어요 😢';
       }
     }
 
@@ -407,6 +419,10 @@
       const reason = reasonInput.value.trim();
       const count = parseInt(countInput.value, 10) || 1;
 
+      if (!state.adminKey) {
+        setStatus('관리자 비밀번호를 먼저 입력해 주세요.', true);
+        return;
+      }
       if (!reason) {
         setStatus('지급 사유를 적어줘야 해요!', true);
         return;
@@ -424,7 +440,8 @@
           body: JSON.stringify({
             action: 'issue',
             reason,
-            count
+            count,
+            adminKey: state.adminKey
           })
         });
         const data = await res.json();
@@ -433,41 +450,55 @@
           reasonInput.value = '';
           countInput.value = '1';
           await fetchWishes();
+        } else if (data.message === 'INVALID_ADMIN_KEY') {
+          setStatus('관리자 비밀번호가 올바르지 않아요.', true);
+        } else if (data.message === 'INVALID_COUNT') {
+          setStatus('지급 개수가 이상해요. 다시 입력해줘!', true);
         } else {
-          throw new Error(data.message || 'Unknown error');
+          setStatus('소원권 지급 중 오류가 발생했어요. (' + (data.message || '알 수 없는 오류') + ')', true);
         }
       } catch (err) {
         console.error(err);
-        setStatus('소원권 지급 중 오류가 발생했어요.', true);
+        setStatus('서버와 통신 중 오류가 발생했어요. 잠시 후 다시 시도해줘!', true);
       }
     }
 
     async function markAsUsed(id) {
+      if (!state.adminKey) {
+        setStatus('관리자 비밀번호를 먼저 입력해 주세요.', true);
+        return;
+      }
       if (!confirm('이 소원권을 사용 처리할까요? 되돌릴 수 없어요!')) return;
       setStatus('사용 처리 중...');
+
       try {
         const res = await fetch(API_BASE, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'use',
-            id
+            id,
+            adminKey: state.adminKey
           })
         });
         const data = await res.json();
         if (data.success) {
           setStatus('소원권이 사용 처리되었어요 ✅');
           await fetchWishes();
+        } else if (data.message === 'INVALID_ADMIN_KEY') {
+          setStatus('관리자 비밀번호가 올바르지 않아요.', true);
+        } else if (data.message === 'NOT_FOUND') {
+          setStatus('해당 소원권을 찾을 수 없어요. (이미 삭제되었을 수 있어요)', true);
         } else {
-          throw new Error(data.message || 'Unknown error');
+          setStatus('사용 처리 중 오류가 발생했어요. (' + (data.message || '알 수 없는 오류') + ')', true);
         }
       } catch (err) {
         console.error(err);
-        setStatus('사용 처리 중 오류가 발생했어요.', true);
+        setStatus('서버와 통신 중 오류가 발생했어요.', true);
       }
     }
 
-    // 버튼 이벤트
+    // 이벤트들
     btnToggleAdmin.addEventListener('click', () => {
       const hidden = adminPanel.classList.contains('hidden');
       adminPanel.classList.toggle('hidden');
@@ -475,11 +506,19 @@
     });
 
     btnToggleList.addEventListener('click', () => {
-      // 지금은 토글할 다른 뷰가 없어서, 여분 기능 (필요하면 목록 접기/펼치기로 확장 가능)
       wishListEl.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
     btnIssue.addEventListener('click', issueWishes);
+
+    adminKeyInput.addEventListener('input', () => {
+      state.adminKey = adminKeyInput.value.trim();
+      if (state.adminKey) {
+        setStatus('관리자 모드 준비 완료 ✨');
+      } else {
+        setStatus('');
+      }
+    });
 
     // 초기 로드
     fetchWishes();
